@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Islas de Conocimiento - Hominidos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Fuentes */
+        body {
+            font-family: 'Merriweather', serif;
+        }
+        h1, h2, h3, h4 {
+            font-family: 'Patrick Hand', cursive; 
+        }
+
+        /* Animación Flotar */
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        /* Fondo */
+        .bg-gradient-sky-desert {
+            background: linear-gradient(to bottom, #a0d3f0 0%, #d8c3a5 100%);
+        }
+
+        /* Animación de Tooltip */
+        .tooltip { 
+            visibility: hidden; 
+            opacity: 0; 
+            transform: translate(-50%, 10px); 
+            transition: opacity 0.3s ease, transform 0.3s ease; 
+            position: absolute; 
+            bottom: 90%; 
+            left: 50%; 
+            z-index: 10; 
+        }
+        .group:hover .tooltip { 
+            visibility: visible; 
+            opacity: 1; 
+            transform: translateX(-50%); 
+        }
+        .tooltip-bubble::after { content: ''; position: absolute; top: 100%; left: 50%; margin-left: -8px; border-width: 8px; border-style: solid; border-color: black transparent transparent transparent; }
+
+        /* Modal y Textura */
+        .modal-paper {
+            background-color: #fdfcf7;
+            border: 4px solid #4a4a4a;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border-radius: 4px;
+            background-image: url('imagenes/paper_texture.jpg'); 
+            background-size: cover;
+        }
+        
+        /* Partículas */
+        .particle { position: absolute; background: rgba(255, 255, 255, 0.3); border-radius: 50%; opacity: 0; animation: drift 20s infinite linear; }
+        @keyframes drift {
+            0% { transform: translate(0, 0); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translate(100vw, 100vh); opacity: 0; }
+        }
+
+        /* --- ESTILOS PARA EL DESPLIEGUE --- */
+
+        /* 1. Animación de Pulso para la isla central */
+        @keyframes pulse-subtle {
+            0%, 100% {
+                transform: scale(1);
+                filter: drop-shadow(0 5px 15px rgba(0,0,0,0.2));
+            }
+            50% {
+                transform: scale(1.03);
+                filter: drop-shadow(0 8px 25px rgba(0,0,0,0.3));
+            }
+        }
+        .animate-pulse-subtle {
+            animation: pulse-subtle 3s infinite ease-in-out;
+        }
+        
+        /* 2. Estilo de la Isla-Portal de Inicio */
+        #explore-trigger {
+            font-family: 'Patrick Hand', cursive;
+            transition: all 0.3s ease;
+        }
+        #explore-trigger h3 {
+            text-shadow: 0 0 10px white, 0 0 10px white, 0 0 15px white;
+        }
+
+        /* 3. Contenedor de la Isla (Modificado) */
+        .island-container {
+            transition: all 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55); 
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+        }
+        .island-container:hover {
+            transform: translateY(-25px) scale(1.05) rotate(2deg); 
+            filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.4));
+            animation-play-state: paused;
+        }
+
+        /* 4. Clase para las islas "colapsadas" */
+        .island-container.island-collapsed {
+            /* Posición inicial: en el centro, donde la Isla-Portal */
+            top: 35% !important; 
+            left: 50% !important;
+            
+            opacity: 0;
+            visibility: hidden;
+            transform: translate(-50%, -50%) scale(0.1) rotate(-45deg);
+        }
+
+        /* 5. Botón de Reset (X) */
+        #reset-islands {
+            font-family: Arial, sans-serif;
+            transition: all 0.3s ease;
+            text-shadow: 0 0 8px rgba(0,0,0,0.7);
+        }
+
+        /* Animación del Modal */
+        @keyframes modal-in {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes modal-out {
+            from { opacity: 1; transform: scale(1); }
+            to { opacity: 0; transform: scale(0.9); }
+        }
+        #modal-overlay.hidden { display: none; }
+        #modal-overlay:not(.hidden) #modal-content { animation: modal-in 0.3s ease-out forwards; }
+        #modal-overlay.hidden #modal-content { animation: modal-out 0.3s ease-in forwards; }
+
+    </style>
+</head>
+<body class="bg-gradient-sky-desert min-h-screen w-full relative">
+
+    <div class="w-full min-h-screen relative">
+
+        <h1 class="text-5xl md:text-7xl text-center text-[#4a4a4a] pt-12 drop-shadow-lg">
+            ISLAS DE CONOCIMIENTO
+        </h1>
+
+        <div id="explore-trigger" class="relative w-80 mx-auto mt-10 cursor-pointer animate-pulse-subtle group">
+            <img src="imagenes/islaprincipal2.png" alt="Isla Central para Explorar" class="w-full">
+            <h3 class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-5xl font-bold text-black pointer-events-none group-hover:scale-105 transition-transform">
+                INICIAR
+            </h3>
+        </div>
+
+        <div id="reset-islands" class="hidden fixed top-6 right-6 z-50 text-5xl text-white cursor-pointer hover:text-red-500 hover:scale-110">
+            &times;
+        </div>
+
+        <div id="world" class="relative w-full h-[180vh]">
+
+            <div 
+                class="island-container group cursor-pointer absolute top-[35%] left-[40%] -translate-x-1/2 -translate-y-1/2 w-[250px] md:w-[350px] animate-float island-collapsed"
+                style="animation-delay: 0s;"
+                data-island-id="homo-sapiens"
+            >
+                <img src="imagenes/craneo2.png" alt="Isla del Cráneo" class="w-full">
+                <div class="text-center text-xl md:text-2xl text-black font-bold" style="text-shadow: 0 0 6px white, 0 0 6px white;">
+                    HOMO SAPIENS
+                </div>
+                <div class="tooltip w-60">
+                    <div class="tooltip-bubble relative bg-white text-black text-center p-2 rounded-lg border-2 border-black">
+                        <p class="text-sm font-bold">HOMO SAPIENS</p>
+                        <p class="text-xs">El origen de nuestra especie.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div 
+                class="island-container group cursor-pointer absolute top-[10%] left-[15%] w-[210px] md:w-[250px] animate-float island-collapsed"
+                style="animation-delay: -2s;"
+                data-island-id="bipedismo"
+            >
+                <img src="imagenes/bipedismo2.png" alt="Isla del Bipedismo" class="w-full">
+                <div class="text-center text-lg md:text-xl text-black font-bold" style="text-shadow: 0 0 6px white, 0 0 6px white;">
+                    BIPEDISMO
+                </div>
+                <div class="tooltip w-60">
+                    <div class="tooltip-bubble relative bg-white text-black text-center p-2 rounded-lg border-2 border-black">
+                        <p class="text-sm font-bold">BIPEDISMO</p>
+                        <p class="text-xs">Característica clave de la evolución humana.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div 
+                class="island-container group cursor-pointer absolute top-[15%] right-[10%] w-[210px] md:w-[250px] animate-float island-collapsed"
+                style="animation-delay: -4s;"
+                data-island-id="evolucion"
+            >
+                <img src="imagenes/evolutiva2.png" alt="Isla de la Línea Evolutiva" class="w-full">
+                <div class="text-center text-lg md:text-xl text-black font-bold" style="text-shadow: 0 0 6px white, 0 0 6px white;">
+                    LÍNEA EVOLUTIVA
+                </div>
+                <div class="tooltip w-52">
+                    <div class="tooltip-bubble relative bg-white text-black text-center p-2 rounded-lg border-2 border-black">
+                        <p class="text-sm font-bold">LÍNEA EVOLUTIVA</p>
+                        <p class="text-xs">Nuestros ancestros.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div 
+                class="island-container group cursor-pointer absolute top-[55%] left-[10%] w-[210px] md:w-[250px] animate-float island-collapsed"
+                style="animation-delay: -1s;"
+                data-island-id="herramientas"
+            >
+                <img src="imagenes/herramienta2.png" alt="Isla de Herramientas" class="w-full">
+                <div class="text-center text-lg md:text-xl text-black font-bold" style="text-shadow: 0 0 6px white, 0 0 6px white;">
+                    HERRAMIENTAS
+                </div>
+                <div class="tooltip w-52">
+                    <div class="tooltip-bubble relative bg-white text-black text-center p-2 rounded-lg border-2 border-black">
+                        <p class="text-sm font-bold">HERRAMIENTAS</p>
+                        <p class="text-xs">La primera tecnología.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div 
+                class="island-container group cursor-pointer absolute top-[55%] right-[10%] w-[210px] md:w-[250px] animate-float island-collapsed"
+                style="animation-delay: -3s;"
+                data-island-id="sociedad"
+            >
+                <img src="imagenes/sociedad2.png" alt="Isla de la Sociedad" class="w-full">
+                <div class="text-center text-lg md:text-xl text-black font-bold" style="text-shadow: 0 0 6px white, 0 0 6px white;">
+                    SOCIEDAD
+                </div>
+                <div class="tooltip w-52">
+                    <div class="tooltip-bubble relative bg-white text-black text-center p-2 rounded-lg border-2 border-black">
+                        <p class="text-sm font-bold">SOCIEDAD</p>
+                        <p class="text-xs">Viviendo en comunidad.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div 
+                class="island-container group cursor-pointer absolute top-[80%] right-[20%] w-[210px] md:w-[250px] animate-float island-collapsed"
+                style="animation-delay: -5s;"
+                data-island-id="fuego"
+            >
+                <img src="imagenes/fuego2.png" alt="Isla del Fuego" class="w-full">
+                <div class="text-center text-lg md:text-xl text-black font-bold" style="text-shadow: 0 0 6px white, 0 0 6px white;">
+                    EL FUEGO
+                </div>
+                <div class="tooltip w-52">
+                    <div class="tooltip-bubble relative bg-white text-black text-center p-2 rounded-lg border-2 border-black">
+                        <p class="text-sm font-bold">EL FUEGO</p>
+                        <p class="text-xs">El control del fuego.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div 
+                class="island-container group cursor-pointer absolute top-[80%] left-[20%] w-[210px] md:w-[250px] animate-float island-collapsed"
+                style="animation-delay: -2.5s;"
+                data-island-id="arte"
+            >
+                <img src="imagenes/arte2.png" alt="Isla del Arte Rupestre" class="w-full">
+                <div class="text-center text-lg md:text-xl text-black font-bold" style="text-shadow: 0 0 6px white, 0 0 6px white;">
+                    ARTE RUPESTRE
+                </div>
+                <div class="tooltip w-52">
+                    <div class="tooltip-bubble relative bg-white text-black text-center p-2 rounded-lg border-2 border-black">
+                        <p class="text-sm font-bold">ARTE RUPESTRE</p>
+                        <p class="text-xs">Primeras expresiones.</p>
+                    </div>
+                </div>
+            </div>
+
+        </div> 
+        
+        <div id="particles-container" class="absolute inset-0 w-full h-full overflow-hidden pointer-events-none"></div>
+
+    </div> 
+    
+    <div id="modal-overlay" class="fixed inset-0 w-full h-full bg-black bg-opacity-70 flex items-center justify-center p-4 z-50 hidden">
+        <div id="modal-content" class="modal-paper w-full max-w-4xl h-auto max-h-[90vh] p-6 md:p-10 relative overflow-y-auto">
+            <button id="modal-close-btn" class="absolute top-4 right-5 text-4xl text-black hover:text-red-600 transition-colors">&times;</button>
+            <h2 id="modal-title" class="text-3xl md:text-5xl text-center text-black mb-8"></h2>
+            <div class="flex flex-col md:flex-row gap-8">
+                <div class="w-full md:w-1/3 flex flex-col items-center">
+                    <img id="modal-image" src="imagenes/craneo2.png" alt="Imagen del modal" class="mb-6 w-[150px] md:w-[200px]">
+                    <div class="mb-4">
+                        <h3 id="modal-subtitle-1" class="text-xl md:text-2xl font-bold text-black uppercase"></h3>
+                        <p id="modal-text-1" class="text-base md:text-lg text-gray-800"></p>
+                    </div>
+                </div>
+                <div class="w-full md:w-2/3 space-y-4">
+                    <div>
+                        <h3 id="modal-subtitle-2" class="text-xl md:text-2xl font-bold text-black uppercase"></h3>
+                        <p id="modal-text-2" class="text-base md:text-lg text-gray-800"></p>
+                    </div>
+                    <div>
+                        <h3 id="modal-subtitle-3" class="text-xl md:text-2xl font-bold text-black uppercase"></h3>
+                        <p id="modal-text-3" class="text-base md:text-lg text-gray-800"></p>
+                    </div>
+                    <div>
+                        <h3 id="modal-subtitle-4" class="text-xl md:text-2xl font-bold text-black uppercase"></h3>
+                        <p id="modal-text-4" class="text-base md:text-lg text-gray-800"></p>
+                    </div>
+                </div>
+            </div>
+            <div id="modal-citations-container" class="mt-8 pt-6 border-t-2 border-gray-400 border-dashed hidden">
+                <h4 class="text-xl font-bold text-black mb-3">Fuentes y Referencias:</h4>
+                <ul id="modal-citations-list" class="list-disc list-inside text-sm text-gray-700 space-y-1"></ul>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // --- BASE DE DATOS DE CONTENIDO (Tu información) ---
+        const islandData = {
+            'homo-sapiens': {
+                title: "HOMO SAPIENS",
+                image: "imagenes/craneo2.png", 
+                sections: [
+                    { title: "Qué es Homo sapiens", text: "La especie Homo sapiens agrupa a todos los humanos modernos que existen hoy día. Se caracteriza por un cráneo globular relativamente grande, una cara plana situada bajo el lóbulo frontal y la presencia de mentón en la mandíbula inferior." },
+                    { title: "Origen y expansión", text: "Nuestra especie evolucionó en África hace aproximadamente 300 000 años y, en oleadas posteriores, se dispersó globalmente, pobló todos los continentes y reemplazó o se mezcló con otras especies de homínidos. humanorigins.si.edu+2Museo de Historia Natural+2" },
+                    { title: "Anatomía y capacidades", text: "Se distingue por un cerebro de volumen medio alrededor de 1 330 cm³, cara pequeña y mandíbula menos prominente que en otras especies humanas antiguas. También posee un esqueleto adaptado a la bipedestación y manipulación refinada. Museo de Historia Natural" },
+                    { title: "Cultura simbólica y tecnología", text: "Homo sapiens es la única especie conocida que desarrolló un lenguaje complejo, arte figurativo, ritos funerarios elaborados, cooperación social a gran escala y tecnología de herramientas variadas." }
+                ],
+                citations: [ { text: "Smithsonian Human Origins – Homo sapiens", url: "https://humanorigins.si.edu/evidence/human-fossils/species/homo-sapiens" } ]
+            },
+            'bipedismo': {
+                title: "BIPEDISMO",
+                image: "imagenes/bipedismo2.png", 
+                sections: [
+                    { title: "¿Qué es el bipedalismo?", text: "El bipedalismo se refiere a la locomoción habitual sobre dos piernas. Uno de los rasgos distintivos del linaje humano es andar erguido sobre dos extremidades inferiores." },
+                    { title: "Origen evolutivo", text: "Los primeros indicios de locomoción bípeda en homínidos datan de hace unos 6 a 7 millones de años, y se observa una adaptación progresiva del esqueleto para caminar erectos." },
+                    { title: "Cambios anatómicos", text: "Cambios como el foramen magnum más hacia adelante, la curvatura de la columna, adaptación de pies con arco, pelvis y extremidades modificadas acompañaron el paso al bipedalismo." },
+                    { title: "Importancia evolutiva", text: "Caminar en dos piernas liberó las manos para manipular objetos, facilitó la vigilancia, la movilidad eficiente en sabana y posiblemente favoreció el desarrollo de cerebros mayores y cooperación social." }
+                ],
+                citations: [ { text: "Australian Museum – Bipedalism", url: "https://australian.museum/learn/science/human-evolution/walking-on-two-legs-bipedalism/" } ]
+            },
+            'evolucion': {
+                title: "LÍNEA EVOLUTIVA",
+                image: "imagenes/evolutiva2.png", 
+                sections: [
+                    { title: "Origen de los homínidos", text: "La evolución humana comenzó con la divergencia del linaje de los grandes simios hace unos 6-7 millones de años en África. Encyclopedia Britannica+2Wikipedia+2" },
+                    { title: "Género Homo y ramificación evolutiva", text: "El género Homo surge hace aproximadamente 2.8-2.5 millones de años, dando paso a diversas especies humanas que se ramificaron, como Homo erectus o Homo heidelbergensis, antes de la aparición de Homo sapiens. Wikipedia+1" },
+                    { title: "Migraciones y expansión global", text: "Los primeros Homo erectus salieron de África hace aproximadamente 1.8 millones de años, lo que marcó el inicio de la dispersión humana fuera del continente originario. Becoming Human+1" },
+                    { title: "Evolución reciente y humanos modernos", text: "Homo sapiens aparece hace alrededor de 300 000 años en África y, mediante múltiples oleadas migratorias, pobló todos los continentes, reemplazando o mezclándose con otras especies humanas arcaicas. Museo de Historia Natural+1" }
+                ],
+                citations: [ { text: "Britannica – Human evolution", url: "https://www.britannica.com/science/human-evolution" } ] 
+            },
+            'herramientas': {
+                title: "HERRAMIENTAS",
+                image: "imagenes/herramienta2.png", 
+                sections: [
+                    { title: "¿Qué son las herramientas prehistóricas?", text: "Las herramientas de piedra y otros artefactos nos ofrecen pistas de cómo vivían, interactuaban y se adaptaban nuestros antepasados humanos. humanorigins.si.edu" },
+                    { title: "Primeras herramientas y evolución tecnológica", text: "Los artefactos más antiguos conocidos datan de hace unos 3.3 millones de años; hacia 1.75 millones de años ya existía la tecnología “Acheuleana” con hachas grandes. Smithsonian Magazine" },
+                    { title: "Impacto en el comportamiento humano", text: "El desarrollo y uso de herramientas permitió una mayor eficacia en la obtención de alimentos, lo que contribuyó a cambios anatómicos y sociales en el linaje humano. Encyclopedia Britannica+1" },
+                    { title: "Herramientas y la simbología emergente", text: "Además de su función práctica, las herramientas comenzaron a formar parte de la cultura simbólica humana, vinculadas con modos de vida, cooperación y enseñanza entre generaciones. humanorigins.si.edu+1" }
+                ],
+                citations: [ { text: "Smithsonian Human Origins – Stone Tools", url: "https://humanorigins.si.edu/evidence/behavior/stone-tools" } ]
+            },
+            'sociedad': {
+                title: "SOCIEDAD",
+                image: "imagenes/sociedad2.png", 
+                sections: [
+                    { title: "Vida social de los primeros humanos", text: "Compartir alimentos, cuidar de los recién nacidos y construir redes sociales fueron adaptaciones clave para que nuestros antepasados enfrentaran los retos de su entorno. humanorigins.si.edu+1" },
+                    { title: "Estructura social y cooperación", text: "A diferencia de otros primates, los humanos desarrollaron redes de cooperación extensas, estructuras sociales más complejas y un período juvenil prolongado, lo que permitió aprendizajes y transmisión cultural. Becoming Human+1" },
+                    { title: "Evolución del entorno social y cultural", text: "Con el tiempo, las sociedades humanas pasaron de grupos pequeños y móviles a estructuras más elaboradas, con roles definidos, mayor tamaño grupal y estrategia colectiva. patrickmanningworldhistorian.com+1" },
+                    { title: "Sociedad y cultura humana moderna", text: "La creciente complejidad social permitió el desarrollo del lenguaje, la simbología, el intercambio cultural y la colaboración a gran escala — elementos que definen lo que somos hoy. humanorigins.si.edu+1" }
+                ],
+                citations: [ { text: "Smithsonian Human Origins – Social Life", url: "https://humanorigins.si.edu/human-characteristics/social-life" } ]
+            },
+            'fuego': {
+                title: "EL FUEGO",
+                image: "imagenes/fuego2.png", 
+                sections: [
+                    { title: "El control del fuego", text: "El dominio del fuego fue un hito evolutivo clave: permitió a los humanos calentar espacios, cocinar alimentos, protegerse de depredadores y expandirse a zonas frías. royalsocietypublishing.org+1" },
+                    { title: "Cronología del uso del fuego", text: "Hay evidencias de sedimentos quemados controlados hace más de 1 millón de años; el uso sistemático del fuego y los hogares parecen establecerse hace aproximadamente 400 000-800 000 años. si.edu+1" },
+                    { title: "Impacto en biología y cultura humana", text: "Cocinar alimentos convirtió nutrientes más accesibles, redujo desgaste dental, facilitó el desarrollo del cerebro, y el fuego permitió más horas de actividad y sociabilidad nocturna. Encyclopedia Britannica" },
+                    { title: "Fuego, tecnología y simbolismo", text: "Más allá de su función práctica, el fuego pasó a tener significado cultural, ritual y social; fue partícipe en la forja de la vida comunitaria y en la transformación del Homo sapiens." }
+                ],
+                citations: [ { text: "Royal Society Publishing – The discovery of fire", url: "https://royalsocietypublishing.org/doi/10.1098/rstb.2015.0164" } ]
+            },
+            'arte': {
+                title: "ARTE RUPESTRE",
+                image: "imagenes/arte2.png", 
+                sections: [
+                    { title: "¿Qué es el arte rupestre?", text: "El arte rupestre se refiere a pinturas y grabados hallados en cuevas y refugios, principalmente del periodo Paleolítico entre hace aproximadamente 40 000 y 14 000 años. Encyclopedia Britannica" },
+                    { title: "Ubicación y significado cultural", text: "Muchas obras se encuentran en Europa (Francia, España) pero también en otras partes del mundo; representan animales, figuras humanas, signos simbólicos, y sugieren que la mente humana ya creaba representaciones abstractas. The Art Story" },
+                    { title: "Técnicas y materiales usados", text: "Pigmentos como óxidos de hierro (rojos), manganeso o carbón (negros) se utilizaron para pinturas; también se hicieron grabados con herramientas de sílex o dedos. Encyclopedia Britannica" },
+                    { title: "Importancia en la historia humana", text: "El arte rupestre revela capacidades simbólicas, narrativas y culturales de nuestros antepasados; es testimonio de que la expresión, el pensamiento y la creatividad humana existían desde hace decenas de miles de años. Google Arts & Culture" }
+                ],
+                citations: [ { text: "Britannica – Cave Art", url: "https://www.britannica.com/art/cave-art" } ]
+            }
+        };
+
+        // --- LÓGICA DEL MODAL (Sin cambios) ---
+        const modalOverlay = document.getElementById('modal-overlay');
+        const modalCloseBtn = document.getElementById('modal-close-btn');
+        const modalTitle = document.getElementById('modal-title');
+        const modalImage = document.getElementById('modal-image');
+        const modalSubtitle1 = document.getElementById('modal-subtitle-1');
+        const modalText1 = document.getElementById('modal-text-1');
+        const modalSubtitle2 = document.getElementById('modal-subtitle-2');
+        const modalText2 = document.getElementById('modal-text-2');
+        const modalSubtitle3 = document.getElementById('modal-subtitle-3');
+        const modalText3 = document.getElementById('modal-text-3');
+        const modalSubtitle4 = document.getElementById('modal-subtitle-4');
+        const modalText4 = document.getElementById('modal-text-4');
+        const modalCitationsContainer = document.getElementById('modal-citations-container');
+        const modalCitationsList = document.getElementById('modal-citations-list');
+
+        function openModal(islandId) {
+            const data = islandData[islandId];
+            if (!data) return;
+            modalTitle.textContent = data.title;
+            modalImage.src = data.image; 
+            modalSubtitle1.textContent = data.sections[0].title;
+            modalText1.textContent = data.sections[0].text;
+            modalSubtitle2.textContent = data.sections[1].title;
+            modalText2.textContent = data.sections[1].text;
+            modalSubtitle3.textContent = data.sections[2].title;
+            modalText3.textContent = data.sections[2].text;
+            
+            if(data.sections[3]) {
+                modalSubtitle4.textContent = data.sections[3].title;
+                modalText4.textContent = data.sections[3].text;
+                modalSubtitle4.parentElement.style.display = 'block';
+            } else {
+                modalSubtitle4.parentElement.style.display = 'none';
+            }
+            modalCitationsList.innerHTML = '';
+            if (data.citations && data.citations.length > 0) {
+                data.citations.forEach(citation => {
+                    const li = document.createElement('li');
+                    const a = document.createElement('a');
+                    a.textContent = citation.text;
+                    a.href = citation.url;
+                    a.target = "_blank"; 
+                    a.rel = "noopener noreferrer";
+                    a.className = "text-blue-700 hover:text-blue-900 hover:underline";
+                    li.appendChild(a); 
+                    modalCitationsList.appendChild(li);
+                });
+                modalCitationsContainer.classList.remove('hidden');
+            } else {
+                modalCitationsContainer.classList.add('hidden');
+            }
+            modalOverlay.classList.remove('hidden');
+            modalOverlay.style.display = 'flex';
+        }
+
+        function closeModal() {
+            modalOverlay.classList.add('hidden');
+            setTimeout(() => { modalOverlay.style.display = 'none'; }, 300); 
+        }
+
+        modalCloseBtn.addEventListener('click', closeModal);
+        modalOverlay.addEventListener('click', (event) => {
+            if (event.target === modalOverlay) closeModal();
+        });
+        
+        // --- LÓGICA DE PARTÍCULAS (Sin cambios) ---
+        const particlesContainer = document.getElementById('particles-container');
+        const numParticles = 50;
+        for (let i = 0; i < numParticles; i++) {
+            let particle = document.createElement('div');
+            particle.className = 'particle';
+            const size = Math.random() * 3 + 1;
+            particle.style.width = `${size}px`;
+            particle.style.height = `${size}px`;
+            particle.style.top = `${Math.random() * 100}vh`;
+            particle.style.left = `${Math.random() * 100}vw`;
+            particle.style.animationDelay = `${Math.random() * 20}s`;
+            particle.style.animationDuration = `${Math.random()* 10 + 10}s`;
+            particlesContainer.appendChild(particle);
+        }
+
+        // --- LÓGICA PARA EL DESPLIEGUE DE ISLAS (Actualizada) ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const exploreTrigger = document.getElementById('explore-trigger');
+            const resetIslandsBtn = document.getElementById('reset-islands');
+            const islandContainers = document.querySelectorAll('.island-container');
+
+            // 1. Abrir las islas
+            exploreTrigger.addEventListener('click', () => {
+                exploreTrigger.classList.add('hidden'); 
+                resetIslandsBtn.classList.remove('hidden'); 
+
+                islandContainers.forEach((island, index) => {
+                    setTimeout(() => {
+                        island.classList.remove('island-collapsed');
+                    }, index * 100); 
+                });
+            });
+
+            // 2. Cerrar las islas
+            resetIslandsBtn.addEventListener('click', () => {
+                exploreTrigger.classList.remove('hidden'); 
+                resetIslandsBtn.classList.add('hidden'); 
+
+                islandContainers.forEach(island => {
+                    island.classList.add('island-collapsed'); 
+                });
+            });
+
+            // 3. Asignar el clic para abrir el modal
+            islandContainers.forEach(island => {
+                island.addEventListener('click', () => {
+                    if (!island.classList.contains('island-collapsed')) {
+                        const islandId = island.dataset.islandId;
+                        openModal(islandId);
+                    }
+                });
+            });
+        });
+
+    </script>
+</body>
+</html>
